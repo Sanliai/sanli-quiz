@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>品牌三力诊断</title>
-<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <style>
   :root {
     --bg: #08090c;
@@ -1420,34 +1419,132 @@ function renderShare(div) {
 }
 
 async function saveShareImage() {
-  const card = document.getElementById('shareCard');
-  if (!card) return;
   const btn = document.querySelector('.btn-save-img');
   if (btn) { btn.textContent = '生成中…'; btn.disabled = true; }
   try {
-    const canvas = await html2canvas(card, {
-      backgroundColor: '#0c0d12',
-      scale: 2,
-      useCORS: true,
-      logging: false
+    const sc = calcScores();
+    const {base,fullSail} = getType(sc);
+    const dk = sc.data.level==='strong'?'s':'w';
+    const sub = fullSail ? '全域领航者·满帆版' : SUB_MAP[base][dk];
+    const tk = fullSail ? '满帆版' : base;
+    const hex = HEX_MAP[tk];
+    const sigs = SIG_MAP[tk];
+
+    // Draw share card on canvas directly (no html2canvas dependency)
+    const W = 600, H = 840;
+    const cvs = document.createElement('canvas');
+    cvs.width = W; cvs.height = H;
+    const ctx = cvs.getContext('2d');
+
+    // Background gradient
+    const bg = ctx.createLinearGradient(0, 0, W, H);
+    bg.addColorStop(0, '#0c0d12');
+    bg.addColorStop(0.5, '#141620');
+    bg.addColorStop(1, '#0f1018');
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, W, H);
+
+    // Border
+    ctx.strokeStyle = 'rgba(196,162,101,0.15)';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(20, 20, W-40, H-40);
+
+    // Label
+    ctx.fillStyle = '#5a5a6a';
+    ctx.font = '12px -apple-system, "PingFang SC", sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('三 力 诊 断', W/2, 72);
+
+    // Type name
+    ctx.fillStyle = fullSail ? '#C4A265' : '#eee8d5';
+    ctx.font = 'bold 42px "Noto Serif SC", "Songti SC", Georgia, serif';
+    ctx.fillText(base, W/2, 145);
+
+    // Sub type
+    ctx.fillStyle = '#8a8a9a';
+    ctx.font = '16px -apple-system, "PingFang SC", sans-serif';
+    ctx.fillText(sub, W/2, 180);
+
+    // Three scores
+    const scores = [
+      {label:'品牌力', val:sc.brand.score, color:'#D4A56A'},
+      {label:'渠道力', val:sc.channel.score, color:'#7CA0B8'},
+      {label:'数据力', val:sc.data.score, color:'#6BAF99'}
+    ];
+    const sw = 140, gap = 20;
+    const sx = (W - sw*3 - gap*2) / 2;
+    scores.forEach((s, i) => {
+      const x = sx + i * (sw + gap) + sw/2;
+      ctx.fillStyle = s.color;
+      ctx.font = 'bold 40px -apple-system, "PingFang SC", sans-serif';
+      ctx.fillText(s.val, x, 268);
+      ctx.fillStyle = '#6a6a7a';
+      ctx.font = '14px -apple-system, "PingFang SC", sans-serif';
+      ctx.fillText(s.label, x, 296);
     });
-    const dataUrl = canvas.toDataURL('image/png');
+
+    // Divider
+    ctx.strokeStyle = 'rgba(196,162,101,0.12)';
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(60, 340); ctx.lineTo(W-60, 340); ctx.stroke();
+
+    // Quote
+    ctx.fillStyle = '#c8c0b0';
+    ctx.font = '18px "Noto Serif SC", "Songti SC", Georgia, serif';
+    // Wrap long text
+    const maxLineW = W - 120;
+    const words = sigs[0];
+    let line = '', ly = 390;
+    for (let ch of words) {
+      const test = line + ch;
+      if (ctx.measureText(test).width > maxLineW) {
+        ctx.fillText(line, W/2, ly);
+        line = ch; ly += 30;
+      } else { line = test; }
+    }
+    ctx.fillText(line, W/2, ly);
+
+    // Seal (hexagram)
+    const sealX = W/2, sealY = 530;
+    ctx.strokeStyle = '#C23A2B';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(sealX-36, sealY-36, 72, 72);
+    ctx.strokeStyle = 'rgba(194,58,43,0.3)';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(sealX-32, sealY-32, 64, 64);
+    ctx.fillStyle = '#C23A2B';
+    ctx.font = '24px serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(hex.sym, sealX, sealY-4);
+    ctx.font = 'bold 16px "Noto Serif SC", "Songti SC", Georgia, serif';
+    ctx.fillText(hex.name, sealX, sealY+22);
+
+    // Hexagram quote
+    ctx.fillStyle = '#5a5a6a';
+    ctx.font = '13px "Noto Serif SC", "Songti SC", Georgia, serif';
+    ctx.fillText(hex.qt, W/2, 600);
+
+    // Footer
+    ctx.fillStyle = '#4a4a5a';
+    ctx.font = '12px -apple-system, "PingFang SC", sans-serif';
+    ctx.fillText('三力智策 · 让中国品牌找到增长的确定性', W/2, H-50);
+
+    // Convert to image
+    const dataUrl = cvs.toDataURL('image/png');
     const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
     const isWeChat = /MicroMessenger/i.test(navigator.userAgent);
 
     if (isMobile || isWeChat) {
-      // Mobile: show image on page, user long-presses to save
       const overlay = document.createElement('div');
       overlay.id = 'imgOverlay';
       overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.92);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;';
       overlay.innerHTML = `
         <img src="${dataUrl}" style="max-width:90%;max-height:70vh;border-radius:12px;box-shadow:0 4px 32px rgba(0,0,0,0.5);" />
-        <p style="color:#C4A265;margin-top:16px;font-size:15px;font-family:var(--font-sans);">长按图片保存到相册</p>
-        <button onclick="document.getElementById('imgOverlay').remove()" style="margin-top:12px;background:none;border:1px solid rgba(255,255,255,0.2);color:#fff;padding:10px 32px;border-radius:6px;font-size:14px;font-family:var(--font-sans);cursor:pointer;">关闭</button>
+        <p style="color:#C4A265;margin-top:16px;font-size:15px;font-family:-apple-system,'PingFang SC',sans-serif;">长按图片保存到相册</p>
+        <button onclick="document.getElementById('imgOverlay').remove()" style="margin-top:12px;background:none;border:1px solid rgba(255,255,255,0.2);color:#fff;padding:10px 32px;border-radius:6px;font-size:14px;font-family:-apple-system,'PingFang SC',sans-serif;cursor:pointer;">关闭</button>
       `;
       document.body.appendChild(overlay);
     } else {
-      // Desktop: auto download
       const link = document.createElement('a');
       link.download = '三力诊断_' + (window._brandName || '品牌') + '.png';
       link.href = dataUrl;
@@ -1455,7 +1552,7 @@ async function saveShareImage() {
     }
   } catch (err) {
     console.error('Save image failed:', err);
-    alert('图片生成失败，请长按分享卡片截图保存');
+    alert('图片生成失败，请截图保存');
   }
   if (btn) { btn.textContent = '保存图片'; btn.disabled = false; }
 }
