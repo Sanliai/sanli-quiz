@@ -1545,9 +1545,17 @@ async function saveShareImage() {
       `;
       document.body.appendChild(overlay);
     } else {
+      // Convert dataURL to Blob for reliable download
+      const byteStr = atob(dataUrl.split(',')[1]);
+      const mimeStr = dataUrl.split(',')[0].split(':')[1].split(';')[0];
+      const ab = new ArrayBuffer(byteStr.length);
+      const ia = new Uint8Array(ab);
+      for (let i = 0; i < byteStr.length; i++) ia[i] = byteStr.charCodeAt(i);
+      const blob = new Blob([ab], {type: mimeStr});
+      const blobUrl = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.download = '三力诊断_' + (window._brandName || '品牌') + '.png';
-      link.href = dataUrl;
+      link.href = blobUrl;
       link.click();
     }
   } catch (err) {
