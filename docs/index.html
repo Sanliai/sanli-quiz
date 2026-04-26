@@ -1422,6 +1422,8 @@ function renderShare(div) {
 async function saveShareImage() {
   const card = document.getElementById('shareCard');
   if (!card) return;
+  const btn = document.querySelector('.btn-save-img');
+  if (btn) { btn.textContent = '生成中…'; btn.disabled = true; }
   try {
     const canvas = await html2canvas(card, {
       backgroundColor: '#0c0d12',
@@ -1429,14 +1431,33 @@ async function saveShareImage() {
       useCORS: true,
       logging: false
     });
-    const link = document.createElement('a');
-    link.download = '三力诊断_' + (window._brandName || '品牌') + '.png';
-    link.href = canvas.toDataURL('image/png');
-    link.click();
+    const dataUrl = canvas.toDataURL('image/png');
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    const isWeChat = /MicroMessenger/i.test(navigator.userAgent);
+
+    if (isMobile || isWeChat) {
+      // Mobile: show image on page, user long-presses to save
+      const overlay = document.createElement('div');
+      overlay.id = 'imgOverlay';
+      overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.92);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;';
+      overlay.innerHTML = `
+        <img src="${dataUrl}" style="max-width:90%;max-height:70vh;border-radius:12px;box-shadow:0 4px 32px rgba(0,0,0,0.5);" />
+        <p style="color:#C4A265;margin-top:16px;font-size:15px;font-family:var(--font-sans);">长按图片保存到相册</p>
+        <button onclick="document.getElementById('imgOverlay').remove()" style="margin-top:12px;background:none;border:1px solid rgba(255,255,255,0.2);color:#fff;padding:10px 32px;border-radius:6px;font-size:14px;font-family:var(--font-sans);cursor:pointer;">关闭</button>
+      `;
+      document.body.appendChild(overlay);
+    } else {
+      // Desktop: auto download
+      const link = document.createElement('a');
+      link.download = '三力诊断_' + (window._brandName || '品牌') + '.png';
+      link.href = dataUrl;
+      link.click();
+    }
   } catch (err) {
     console.error('Save image failed:', err);
-    alert('图片生成失败，请截图保存');
+    alert('图片生成失败，请长按分享卡片截图保存');
   }
+  if (btn) { btn.textContent = '保存图片'; btn.disabled = false; }
 }
 
 // =====================================================
