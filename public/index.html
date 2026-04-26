@@ -1,0 +1,1448 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>品牌三力诊断</title>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<style>
+  :root {
+    --bg: #08090c;
+    --bg2: #0e1015;
+    --card: #15171e;
+    --card-active: #1c1f2a;
+    --border: #23262f;
+    --border-light: #2e3140;
+    --text: #e4e2df;
+    --text2: #a0a0b2;
+    --text3: #636378;
+    --accent: #C4A265;
+    --accent-soft: rgba(196,162,101,0.12);
+    --accent-glow: rgba(196,162,101,0.3);
+    --gold: #C4A265;
+    --gold-soft: rgba(196,162,101,0.12);
+    --gold-glow: rgba(196,162,101,0.3);
+    --seal: #C23A2B;
+    --seal-soft: rgba(194,58,43,0.15);
+    --weak-tag: #B8785A;
+    --weak-tag-soft: rgba(184,120,90,0.12);
+    --brand: #D4A56A;
+    --brand-soft: rgba(212,165,106,0.12);
+    --channel: #7CA0B8;
+    --channel-soft: rgba(124,160,184,0.12);
+    --data: #6BAF99;
+    --data-soft: rgba(107,175,153,0.12);
+    --radius: 10px;
+    --font-serif: 'Georgia', 'Noto Serif SC', 'Songti SC', serif;
+    --font-sans: -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html { font-size:16px; }
+  body {
+    font-family: var(--font-sans);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    min-height: 100dvh;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ===== LAYOUT ===== */
+  .app {
+    max-width: 420px;
+    margin: 0 auto;
+    min-height: 100vh;
+    min-height: 100dvh;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .screen {
+    display: none;
+    min-height: 100vh;
+    min-height: 100dvh;
+    padding: 0 20px;
+    flex-direction: column;
+  }
+  .screen.active {
+    display: flex;
+    animation: screenIn 0.35s cubic-bezier(0.22,1,0.36,1);
+  }
+  @keyframes screenIn {
+    from { opacity:0; transform:translateY(16px); }
+    to { opacity:1; transform:translateY(0); }
+  }
+
+  /* ===== START SCREEN ===== */
+  .start {
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    background: radial-gradient(ellipse at 50% 30%, rgba(196,162,101,0.08) 0%, transparent 60%);
+  }
+  .start-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    font-size: 11px;
+    color: var(--text3);
+    letter-spacing: 1px;
+    margin-bottom: 40px;
+  }
+  .start-badge .dot {
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    background: var(--accent);
+  }
+  .start h1 {
+    font-family: var(--font-serif);
+    font-size: 40px;
+    font-weight: 700;
+    letter-spacing: 10px;
+    margin-bottom: 12px;
+    line-height: 1.2;
+  }
+  .start .tagline {
+    font-size: 17px;
+    line-height: 1.8;
+    margin-bottom: 8px;
+    color: var(--text);
+  }
+  .start .tagline-sub {
+    font-size: 13px;
+    color: var(--text2);
+    line-height: 1.7;
+    margin-bottom: 40px;
+  }
+  .start .meta-row {
+    display: flex;
+    justify-content: center;
+    gap: 24px;
+    margin-bottom: 36px;
+  }
+  .start .meta-item {
+    text-align: center;
+  }
+  .start .meta-val {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text);
+  }
+  .start .meta-label {
+    font-size: 11px;
+    color: var(--text3);
+    margin-top: 2px;
+  }
+  .btn-primary {
+    background: var(--accent);
+    color: #0a0a0f;
+    border: none;
+    padding: 15px 56px;
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: 3px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.25s;
+    font-family: var(--font-sans);
+  }
+  .btn-primary:active { transform: scale(0.97); }
+  .btn-primary:hover { box-shadow: 0 4px 24px var(--accent-glow); }
+  .start .footer-text {
+    margin-top: 28px;
+    font-size: 11px;
+    color: var(--text3);
+    letter-spacing: 1px;
+  }
+
+  /* ===== QUESTION SCREEN ===== */
+  .question {
+    padding-top: 0;
+    justify-content: flex-start;
+    padding-top: env(safe-area-inset-top, 0);
+  }
+
+  /* Top Bar */
+  .q-topbar {
+    display: flex;
+    align-items: center;
+    padding: 16px 0 12px;
+    gap: 12px;
+  }
+  .q-back {
+    width: 32px; height: 32px;
+    display: flex; align-items: center; justify-content: center;
+    background: none; border: none; color: var(--text3);
+    font-size: 18px; cursor: pointer; border-radius: 6px;
+    transition: all 0.2s;
+  }
+  .q-back:hover { color: var(--text2); background: var(--card); }
+  .q-progress-wrap {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .q-progress-meta {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: var(--text3);
+  }
+  .q-progress-meta .dim-label {
+    font-weight: 600;
+    letter-spacing: 1px;
+  }
+  .q-progress-meta .dim-label.brand { color: var(--brand); }
+  .q-progress-meta .dim-label.channel { color: var(--channel); }
+  .q-progress-meta .dim-label.data { color: var(--data); }
+  .q-progress-meta .dim-label.fake { color: var(--text3); }
+  .q-progress-track {
+    height: 3px;
+    background: var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .q-progress-fill {
+    height: 100%;
+    border-radius: 2px;
+    background: var(--accent);
+    transition: width 0.4s cubic-bezier(0.22,1,0.36,1);
+  }
+
+  /* Question Content */
+  .q-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding-bottom: 40px;
+  }
+  .q-number {
+    font-size: 12px;
+    color: var(--text3);
+    margin-bottom: 12px;
+    letter-spacing: 1px;
+  }
+  .q-text {
+    font-family: var(--font-serif);
+    font-size: 19px;
+    font-weight: 600;
+    line-height: 1.7;
+    margin-bottom: 28px;
+  }
+
+  /* Options */
+  .q-options {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .opt-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 15px 16px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+  }
+  .opt-card:active { transform: scale(0.98); }
+  .opt-radio {
+    width: 18px; height: 18px;
+    border: 1.5px solid var(--border-light);
+    border-radius: 50%;
+    flex-shrink: 0;
+    margin-top: 2px;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .opt-radio .inner {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--accent);
+    transform: scale(0);
+    transition: transform 0.2s;
+  }
+  .opt-card.selected {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+  }
+  .opt-card.selected .opt-radio {
+    border-color: var(--accent);
+  }
+  .opt-card.selected .opt-radio .inner {
+    transform: scale(1);
+  }
+  .opt-text {
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--text2);
+  }
+  .opt-card.selected .opt-text {
+    color: var(--text);
+  }
+  .opt-highlight {
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  /* ===== INFO SCREEN ===== */
+  .info {
+    justify-content: center;
+  }
+  .info-header {
+    margin-bottom: 36px;
+  }
+  .info-header h2 {
+    font-family: var(--font-serif);
+    font-size: 24px;
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+  .info-header p {
+    font-size: 14px;
+    color: var(--text2);
+  }
+  .form-field {
+    margin-bottom: 22px;
+  }
+  .form-field label {
+    display: block;
+    font-size: 13px;
+    font-weight: 500;
+    margin-bottom: 8px;
+    color: var(--text2);
+  }
+  .form-field label .req {
+    color: var(--accent);
+  }
+  .form-field input,
+  .form-field select {
+    width: 100%;
+    padding: 13px 14px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 8px;
+    font-size: 15px;
+    font-family: var(--font-sans);
+    outline: none;
+    transition: border-color 0.2s;
+    -webkit-appearance: none;
+  }
+  .form-field input:focus,
+  .form-field select:focus {
+    border-color: var(--accent);
+  }
+  .form-field select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23636378' fill='none' stroke-width='1.5'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+    padding-right: 36px;
+  }
+  .form-field select option { background: var(--card); }
+  .btn-submit {
+    width: 100%;
+    background: var(--accent);
+    color: #0a0a0f;
+    border: none;
+    padding: 15px;
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    border-radius: 6px;
+    cursor: pointer;
+    margin-top: 12px;
+    font-family: var(--font-sans);
+    transition: all 0.25s;
+  }
+  .btn-submit:active { transform: scale(0.98); }
+
+  /* ===== RESULT SCREEN ===== */
+  .result {
+    padding: 24px 20px 40px;
+  }
+
+  .r-header {
+    text-align: center;
+    padding: 32px 0 24px;
+  }
+  .r-type-label {
+    font-size: 11px;
+    color: var(--text3);
+    letter-spacing: 3px;
+    margin-bottom: 8px;
+  }
+  .r-type-name {
+    font-family: var(--font-serif);
+    font-size: 34px;
+    font-weight: 700;
+    line-height: 1.3;
+    margin-bottom: 6px;
+  }
+  .r-type-name.full-sail {
+    background: linear-gradient(135deg, var(--gold) 0%, #E8C97A 50%, var(--gold) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .r-subtype {
+    font-size: 14px;
+    color: var(--text2);
+  }
+
+  /* Hexagram Seal */
+  .r-seal {
+    width: 80px;
+    height: 80px;
+    margin: 24px auto;
+    border: 2px solid var(--seal);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+  }
+  .r-seal::before {
+    content: '';
+    position: absolute;
+    inset: 3px;
+    border: 1px solid var(--seal);
+    opacity: 0.3;
+  }
+  .r-seal-symbol {
+    font-size: 22px;
+    color: var(--seal);
+    line-height: 1;
+    letter-spacing: -2px;
+  }
+  .r-seal-name {
+    font-family: var(--font-serif);
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--seal);
+    margin-top: 2px;
+  }
+
+  .r-quote {
+    text-align: center;
+    font-family: var(--font-serif);
+    font-size: 15px;
+    color: var(--accent);
+    line-height: 1.8;
+    margin-bottom: 6px;
+    padding: 0 12px;
+  }
+  .r-hexagram {
+    text-align: center;
+    font-size: 12px;
+    color: var(--text3);
+    font-style: italic;
+    line-height: 1.7;
+    margin-bottom: 28px;
+    padding: 0 8px;
+  }
+
+  /* Score Section */
+  .r-scores {
+    margin-bottom: 24px;
+  }
+  .r-score-row {
+    display: flex;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+  .r-score-label {
+    width: 52px;
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .r-score-label.brand { color: var(--brand); }
+  .r-score-label.channel { color: var(--channel); }
+  .r-score-label.data { color: var(--data); }
+  .r-score-track {
+    flex: 1;
+    height: 6px;
+    background: var(--border);
+    border-radius: 3px;
+    margin: 0 12px;
+    overflow: hidden;
+  }
+  .r-score-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 1s cubic-bezier(0.22,1,0.36,1);
+  }
+  .r-score-fill.brand { background: linear-gradient(90deg, var(--brand), #E0BB8A); }
+  .r-score-fill.channel { background: linear-gradient(90deg, var(--channel), #98BCD0); }
+  .r-score-fill.data { background: linear-gradient(90deg, var(--data), #8AC8B5); }
+  .r-score-num {
+    width: 28px;
+    font-size: 18px;
+    font-weight: 700;
+    text-align: right;
+  }
+  .r-score-tag {
+    margin-left: 8px;
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-weight: 600;
+  }
+  .r-score-tag.strong { background: var(--data-soft); color: var(--data); }
+  .r-score-tag.medium { background: var(--gold-soft); color: var(--gold); }
+  .r-score-tag.weak { background: var(--weak-tag-soft); color: var(--weak-tag); }
+
+  /* Radar */
+  .r-radar {
+    width: 220px;
+    height: 220px;
+    margin: 0 auto 28px;
+  }
+
+  /* Industry Compare */
+  .r-industry {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px 20px;
+    margin-bottom: 20px;
+  }
+  .r-industry h4 {
+    font-size: 12px;
+    color: var(--text3);
+    font-weight: 400;
+    margin-bottom: 14px;
+    letter-spacing: 1px;
+  }
+  .r-cmp-row {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+    gap: 10px;
+  }
+  .r-cmp-label {
+    width: 48px;
+    font-size: 12px;
+    font-weight: 500;
+  }
+  .r-cmp-bar-area {
+    flex: 1;
+    position: relative;
+    height: 18px;
+    display: flex;
+    align-items: center;
+  }
+  .r-cmp-you {
+    height: 8px;
+    border-radius: 4px;
+    transition: width 1s cubic-bezier(0.22,1,0.36,1);
+  }
+  .r-cmp-avg-line {
+    position: absolute;
+    width: 2px;
+    height: 16px;
+    background: var(--text3);
+    border-radius: 1px;
+    top: 1px;
+  }
+  .r-cmp-avg-val {
+    font-size: 10px;
+    color: var(--text3);
+    margin-left: 8px;
+    white-space: nowrap;
+  }
+  .r-percentile {
+    font-size: 11px;
+    color: var(--text3);
+    margin-top: 12px;
+    line-height: 1.7;
+  }
+
+  /* Diagnosis */
+  .r-diagnosis {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    margin-bottom: 24px;
+  }
+  .r-diagnosis-text {
+    font-size: 14px;
+    line-height: 1.85;
+    margin-bottom: 16px;
+    color: var(--text);
+  }
+  .r-insight {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+  .r-insight-dot {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--gold);
+    flex-shrink: 0;
+    margin-top: 7px;
+  }
+  .r-insight-text {
+    font-size: 13px;
+    line-height: 1.7;
+    color: var(--text2);
+  }
+
+  /* Bottom Actions */
+  .r-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .btn-share {
+    width: 100%;
+    background: var(--accent);
+    color: #0a0a0f;
+    border: none;
+    padding: 14px;
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-family: var(--font-sans);
+  }
+  .btn-retry {
+    width: 100%;
+    background: none;
+    color: var(--text3);
+    border: 1px solid var(--border);
+    padding: 12px;
+    font-size: 14px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-family: var(--font-sans);
+  }
+
+  /* ===== SHARE SCREEN ===== */
+  .share {
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+  }
+  .share-card {
+    width: 300px;
+    background: linear-gradient(160deg, #0c0d12 0%, #141620 40%, #0f1018 100%);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 28px 22px;
+    margin-bottom: 28px;
+  }
+  .share-card .sc-label {
+    font-size: 10px;
+    color: var(--text3);
+    letter-spacing: 3px;
+    margin-bottom: 16px;
+  }
+  .share-card .sc-type {
+    font-family: var(--font-serif);
+    font-size: 26px;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+  .share-card .sc-subtype {
+    font-size: 12px;
+    color: var(--text2);
+    margin-bottom: 18px;
+  }
+  .share-card .sc-scores {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    margin-bottom: 18px;
+  }
+  .share-card .sc-score-item {
+    text-align: center;
+  }
+  .share-card .sc-score-val {
+    font-size: 22px;
+    font-weight: 700;
+  }
+  .share-card .sc-score-lbl {
+    font-size: 10px;
+    color: var(--text3);
+  }
+  .share-card .sc-quote {
+    font-family: var(--font-serif);
+    font-size: 13px;
+    color: var(--accent);
+    line-height: 1.7;
+    margin-bottom: 16px;
+  }
+  .share-card .sc-seal-area {
+    display: flex;
+    justify-content: flex-end;
+  }
+  .share-card .sc-seal {
+    width: 50px; height: 50px;
+    border: 1.5px solid var(--seal);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-serif);
+  }
+  .share-card .sc-seal-symbol {
+    font-size: 14px;
+    color: var(--seal);
+    line-height: 1;
+  }
+  .share-card .sc-seal-name {
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--seal);
+  }
+  .share-card .sc-footer {
+    font-size: 10px;
+    color: var(--text3);
+    margin-top: 12px;
+    letter-spacing: 1px;
+  }
+
+  .lead-section {
+    width: 100%;
+    max-width: 360px;
+  }
+  .lead-section h3 {
+    font-size: 18px;
+    margin-bottom: 6px;
+  }
+  .lead-section p {
+    font-size: 13px;
+    color: var(--text2);
+    margin-bottom: 18px;
+    line-height: 1.6;
+  }
+  .btn-wechat {
+    width: 100%;
+    background: #07c160;
+    color: #fff;
+    border: none;
+    padding: 13px;
+    font-size: 15px;
+    font-weight: 600;
+    border-radius: 6px;
+    cursor: pointer;
+    margin-bottom: 10px;
+    font-family: var(--font-sans);
+  }
+  .btn-consult {
+    width: 100%;
+    background: none;
+    color: var(--text);
+    border: 1px solid var(--border);
+    padding: 13px;
+    font-size: 15px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-family: var(--font-sans);
+  }
+
+  .share-actions {
+    width: 100%;
+    max-width: 360px;
+    margin-bottom: 20px;
+  }
+  .btn-save-img {
+    width: 100%;
+    background: var(--accent);
+    color: #0a0a0f;
+    border: none;
+    padding: 13px;
+    font-size: 15px;
+    font-weight: 600;
+    border-radius: 6px;
+    cursor: pointer;
+    font-family: var(--font-sans);
+    transition: all 0.25s;
+  }
+  .btn-save-img:active { transform: scale(0.98); }
+</style>
+</head>
+<body>
+<div class="app" id="app"></div>
+
+<script>
+// =====================================================
+// DATA
+// =====================================================
+const Q_ORDER = ['B1','B2','B3','B4','B5','C1','C2','C3','C4','C5','D2','D1','D3','D4','D5','fake2'];
+
+const QS = {
+  B1:{ dim:'brand', text:'如果把你的品牌比作一个人，下面哪种描述最贴近？', opts:[
+    {k:'A',t:'靠谱的老朋友',d:'用户遇到困难时第一个想到你，因为信任你的稳定输出',s:14},
+    {k:'B',t:'有态度的意见领袖',d:'用户关注你不只是因为产品，更因为你代表一种立场或生活方式',s:20},
+    {k:'C',t:'性价比专家',d:'用户选择你的最主要理由是：同样品质，你更便宜',s:6},
+    {k:'D',t:'新奇特探险家',d:'用户觉得你总能带来意外和新鲜感，但不一定每次都懂你',s:11}
+  ]},
+  B2:{ dim:'brand', text:'当竞品降价20%，你们最可能的反应是？', opts:[
+    {k:'A',t:'跟着降',d:'不能让竞品把客户抢走，利润可以少点',s:8},
+    {k:'B',t:'不动',d:'我们的客户认的是价值，不是价格',s:18},
+    {k:'C',t:'加码服务/内容',d:'用更好的体验证明我们不只是贵，是值',s:20},
+    {k:'D',t:'不知道',d:'其实不太清楚用户为什么选我们而不选竞品',s:3}
+  ]},
+  B3:{ dim:'brand', text:'你所在品类中，用户购买决策时，你的品牌在用户心智中的位置是？', opts:[
+    {k:'A',t:'首选',d:'很多用户主动搜索/点名要我们',s:20},
+    {k:'B',t:'备选',d:'用户会在我们和2-3个竞品之间比较',s:14},
+    {k:'C',t:'听过的',d:'用户知道我们，但购买时不一定想到',s:9},
+    {k:'D',t:'不清楚',d:'我真的不知道用户在想什么',s:3}
+  ]},
+  B4:{ dim:'brand', text:'如果品牌需要涨价10%，你们最可能先做什么？', opts:[
+    {k:'A',t:'先跟核心用户沟通',d:'确认他们愿意为价值买单',s:20},
+    {k:'B',t:'算一下竞品价格',d:'看还有没有涨价空间',s:12},
+    {k:'C',t:'想办法降成本',d:'保住价格不动',s:8},
+    {k:'D',t:'先涨试试',d:'看看掉多少客户再调整',s:10}
+  ]},
+  B5:{ dim:'brand', text:'如果明天你的品牌消失，用户会损失什么？', opts:[
+    {k:'A',t:'一种独特的生活态度/价值观',d:'不只是产品，是我代表的东西',s:20},
+    {k:'B',t:'一个可靠的选择',d:'换品牌麻烦，但不是不可替代',s:11},
+    {k:'C',t:'一个便宜的选择',d:'市场上总能找到差不多的',s:5},
+    {k:'D',t:'可能不会有人注意到',d:'说实话，我们没什么不可替代的',s:2}
+  ]},
+  C1:{ dim:'channel', text:'昨晚大促，你凌晨醒来第一件事是？', opts:[
+    {k:'A',t:'打开手机看实时数据看板',d:'我能随时看到各渠道实时数据',s:20},
+    {k:'B',t:'翻运营群消息，看大家报的数',d:'数据散在各处，我在群里拼图',s:12},
+    {k:'C',t:'等天亮了再说',d:'反正半夜也改不了什么',s:7},
+    {k:'D',t:'看月底总账就行',d:'不太关注具体数字',s:3}
+  ]},
+  C2:{ dim:'channel', text:'某渠道突然爆单，而你的仓库快空了——你的第一反应是？', opts:[
+    {k:'A',t:'立刻查全渠道库存，调拨支援',d:'我有实时库存视图，知道哪里有货',s:20},
+    {k:'B',t:'先接单，我再想办法',d:'我先接住流量，供应链后面补',s:12},
+    {k:'C',t:'控制销量，怕超卖',d:'宁愿少卖也不冒险',s:8},
+    {k:'D',t:'这是常态',d:'我们经常要么缺货要么积压，已经习惯了',s:3}
+  ]},
+  C3:{ dim:'channel', text:'你的终端/经销商，有多少是你能直接触达消费者的？', opts:[
+    {k:'A',t:'大部分',d:'我有会员体系，能直接跟终端消费者沟通',s:20},
+    {k:'B',t:'一半左右',d:'部分渠道有自己的用户数据，不共享给我',s:12},
+    {k:'C',t:'很少',d:'货卖出去就跟我没关系了，终端数据拿不到',s:6},
+    {k:'D',t:'完全没有',d:'我完全依赖经销商，连谁买了都不知道',s:2}
+  ]},
+  C4:{ dim:'channel', text:'用户在你不同渠道下单，收到货的时间/体验差异大吗？', opts:[
+    {k:'A',t:'几乎一样',d:'无论哪里买，用户感受到的是同一个品牌',s:20},
+    {k:'B',t:'有点差异',d:'线上快一些，线下偶尔要等调货',s:12},
+    {k:'C',t:'差异很大',d:'不同渠道像不同的公司在运作',s:5},
+    {k:'D',t:'没关注过',d:'我不太清楚用户在不同渠道的体验',s:3}
+  ]},
+  C5:{ dim:'channel', text:'你的线上渠道和线下渠道，是否存在价格/客户争夺的冲突？', opts:[
+    {k:'A',t:'没有',d:'我们做了很好的区隔和协同，线上线下互补',s:20},
+    {k:'B',t:'有一点',d:'偶尔有摩擦，但整体可控',s:14},
+    {k:'C',t:'比较严重',d:'线上线下在打价格战，内部在消耗',s:5},
+    {k:'D',t:'非常严重',d:'经销商抱怨不断，线上冲击线下是常态',s:2}
+  ]},
+  D1:{ dim:'data', text:'公司做重要经营决策时，主要依据是？', opts:[
+    {k:'A',t:'数据报告',d:'看了多个维度的数据才做的决定',s:20},
+    {k:'B',t:'经验判断为主，数据参考',d:'直觉为主，数据只是辅助',s:11},
+    {k:'C',t:'团队讨论，大家觉得对',d:'靠集体判断，不一定看数据',s:6},
+    {k:'D',t:'跟着感觉走',d:'这个行业变化太快，数据往往是滞后的',s:3}
+  ]},
+  D2:{ dim:'data', text:'你最近一次跟团队吵架（或激烈讨论），是因为什么？', opts:[
+    {k:'A',t:'对数据解读有分歧',d:'我们都在看同一组数字，但得出不同结论',s:20},
+    {k:'B',t:'有人拿不出依据就拍板',d:'我觉得决策应该有数据支撑',s:17},
+    {k:'C',t:'执行走了样',d:'定了方向但落不下去',s:7},
+    {k:'D',t:'说不清',d:'我们很少因为具体事吵架，更多是"感觉不对"',s:3}
+  ]},
+  D3:{ dim:'data', text:'公司是否曾因"数据没到位"而推迟或放弃决策？', opts:[
+    {k:'A',t:'没有',d:'需要的数据随时能拿到',s:20},
+    {k:'B',t:'推迟过',d:'等了几天数据才做决定',s:12},
+    {k:'C',t:'放弃过',d:'数据拿不到，只好凭感觉拍板',s:6},
+    {k:'D',t:'经常这样',d:'已经习惯在没有数据的情况下做决定了',s:3}
+  ]},
+  D4:{ dim:'data', text:'你要看一个大促活动的全渠道数据，需要找几个部门/系统？', opts:[
+    {k:'A',t:'1个',d:'我有统一的数据平台，一次就能看全',s:20},
+    {k:'B',t:'2-3个',d:'要拼一下，但基本能拿到',s:12},
+    {k:'C',t:'4个以上',d:'每个渠道各管各的，我要到处要数据',s:5},
+    {k:'D',t:'拿不到',d:'很多数据根本不向我开放，或者根本没记录',s:2}
+  ]},
+  D5:{ dim:'data', text:'你的企业目前是否有用AI做预测分析或智能决策？', opts:[
+    {k:'A',t:'已在多个场景深度应用',d:'销量预测、智能补货、个性化推荐等',s:20},
+    {k:'B',t:'在尝试',d:'有1-2个场景在试点，效果还在验证',s:14},
+    {k:'C',t:'想做但不知道怎么入手',d:'知道AI重要，但缺乏人才和路径',s:8},
+    {k:'D',t:'没考虑过',d:'我们现在连基础数据都没管好，AI太远了',s:3}
+  ]},
+  fake2:{ dim:'fake', text:'如果明天最大的竞品突然进入你的核心市场，你最有信心的防守方式是？', opts:[
+    {k:'A',t:'用户认我这个人/这个品牌',d:'品牌是护城河',s:0,adj:{brand:3}},
+    {k:'B',t:'我的渠道关系和覆盖别人搬不走',d:'渠道是护城河',s:0,adj:{channel:3}},
+    {k:'C',t:'我的反应速度和判断力比对手快',d:'数据是护城河',s:0,adj:{data:3}},
+    {k:'D',t:'说实话，我没太大把握',d:'我不确定我的护城河在哪',s:0}
+  ]}
+};
+
+const TYPE_MAP = {
+  strong_strong:'全域领航者', strong_medium:'信念感召型', strong_weak:'光环独行侠',
+  medium_strong:'地盘深耕者', medium_medium:'潜力蓄能者', medium_weak:'渠道共生型',
+  weak_strong:'暗流涌动者', weak_medium:'迷雾行者', weak_weak:'潮退守望者'
+};
+const SUB_MAP = {
+  '全域领航者':{s:'🏆 数字化标杆',w:'⚠️ 直觉领航者'},
+  '信念感召型':{s:'🎯 精准增长型',w:'📢 声量猎手'},
+  '光环独行侠':{s:'📊 数据清醒型',w:'💥 聚光灯下的孤岛'},
+  '地盘深耕者':{s:'🤖 智能供应链型',w:'🏭 经验指挥官'},
+  '潜力蓄能者':{s:'🚀 准头部型',w:'🐢 稳步慢行型'},
+  '渠道共生型':{s:'🔍 数据突围型',w:'🪣 渠道守望者'},
+  '暗流涌动者':{s:'🎭 潜力黑马型',w:'🌑 沉默的底座'},
+  '迷雾行者':{s:'📈 数据改良型',w:'🌀 旋转木马'},
+  '潮退守望者':{s:'🛡️ 清醒守望者',w:'☠️ 悬崖边的逆行者'}
+};
+const HEX_MAP = {
+  '全域领航者':{sym:'☰☰',name:'乾',qt:'天行健，君子以自强不息——你不在适应市场，你在定义市场。'},
+  '信念感召型':{sym:'☴☴',name:'巽',qt:'随风巽，君子以申命行事——你不需要推，风自会替你传。'},
+  '光环独行侠':{sym:'☲☲',name:'离',qt:'明两作离，大人以继明照于四方——你照亮四方，但火不能没有柴。'},
+  '地盘深耕者':{sym:'☷☷',name:'坤',qt:'地势坤，君子以厚德载物——你铺的路别人搬不走，但你铺的路上没有你的旗帜。'},
+  '潜力蓄能者':{sym:'☰☷',name:'泰',qt:'天地交泰，后以财成天地之道——三力通达，太平之中藏着最大的危险：不选。'},
+  '渠道共生型':{sym:'☵☷',name:'比',qt:'地上有水比，先王以建万国亲诸侯——共生是生存，但共生和寄生之间，界限很薄。'},
+  '暗流涌动者':{sym:'☵☵',name:'坎',qt:'水洊至习坎，君子以常德行习教事——深水无声，但深水有力。关键是从深处浮上来。'},
+  '迷雾行者':{sym:'☶☵',name:'蒙',qt:'山下出泉蒙，君子以果行育德——泉被山挡了去路，但泉一定会找到出口。'},
+  '潮退守望者':{sym:'☶☷',name:'剥',qt:'山附于地剥，上以厚下安宅——潮水在退，一寸一寸剥落。但剥到极处，就是复。'},
+  '满帆版':{sym:'☲☰',name:'大有',qt:'火在天上大有，君子以遏恶扬善顺天休命——一切皆大有，但满则溢。'}
+};
+const DIAG_MAP = {
+  '全域领航者':'三力均强，你已经站在了多数品牌到不了的位置。但高处从不缺风——你的系统在替你运转，你的团队在等你拍板，你才是那个最大的变量和最大的瓶颈。',
+  '信念感召型':'你有把人吸引来的天赋，这是最稀缺的品牌力。但声量是武器，不是城池——让人来和让人留，需要两种完全不同的能力。你的渠道还没追上你的品牌。',
+  '光环独行侠':'你的品牌够亮，但一个人走得远，一群人才走得宽。知名度不等于可及性——用户听说过你，但买不到你，这才是最大的浪费。光很亮，但缺柴。',
+  '地盘深耕者':'你的渠道是你的王国——铺的路、建的关系、打下的地盘，别人搬不走。但王国和帝国之间，差的是一个调度系统。没有品牌的渠道，随时可以被替换。',
+  '潜力蓄能者':'三力均衡不是平庸，是还没找到爆发的支点。均衡是安全牌，但不是赢牌——你需要一个尖刺，品牌力冲80，或渠道力冲80，比三力都70更有杀伤力。',
+  '渠道共生型':'你在渠道的庇护下活着，但渠道给你的，渠道也能拿走。你跟用户之间隔着一层渠道——感觉得到他们，但触不到他们。利润被压缩，你却不确定压缩了多少。',
+  '暗流涌动者':'你的产能是你的底座——稳固，但沉默。沉默的底座撑得起大楼，但大楼不属于你。你在替别人做产品，品质是你的，品牌是别人的。制造利润和品牌利润，是两个世界。',
+  '迷雾行者':'什么都差一点，但差的那口气，往往是方向。忙而无效，原地打转——不是不够努力，是没有方向。你最需要的不是引擎，是一面镜子。先看清，再加速。',
+  '潮退守望者':'你在风浪里活到了今天——韧劲不是护城河，站着不动会被冲走。你的品牌力和渠道力都在补——先让一条腿站起来，比两条腿同时打石膏更紧要。剥到极处就是复，但你得先动。',
+  '满帆版':'三力均强，数据驱动，你不在适应市场——你在定义市场。这个位置最稀缺的不是能力，是保持清醒。你的天花板不是对手，是行业增速本身。'
+};
+const SIG_MAP = {
+  '全域领航者':['"你的问题不是活不下去，是怎么跑得更快"','"你才是那个最大的瓶颈"','"高处从不缺风"'],
+  '信念感召型':['"你有把人吸引来的天赋——但让他们留下需要另一种能力"','"声量是武器，武器不等于城池"','"好故事没有足够多的舞台"'],
+  '光环独行侠':['"知名度不等于可及性"','"光很亮，但缺柴"','"一个人撑不了所有渠道"'],
+  '地盘深耕者':['"王国和帝国之间，差一个调度系统"','"你赢的是战役，不是战争"','"渠道不会帮你建品牌"'],
+  '潜力蓄能者':['"均衡是安全牌，不是赢牌"','"均衡是底盘，不是天花板"','"你差的不是能力，是聚焦"'],
+  '渠道共生型':['"共生和寄生之间，界限很薄"','"渠道给你的，渠道也能拿走"','"你看得见出口，只是还没走过去"'],
+  '暗流涌动者':['"沉默的底座撑得起大楼，但大楼不属于你"','"别人看不到你，但你看得见路"','"制造利润和品牌利润是两个世界"'],
+  '迷雾行者':['"不是不够努力，是没有方向"','"数据是迷雾里的手电筒"','"先看清，再加速"'],
+  '潮退守望者':['"韧劲不是护城河"','"看得见不等于站得住"','"先让一条腿站起来"'],
+  '满帆版':['"你要么成为标准，要么标准追上你"','"这个位置最稀缺的不是能力，是保持清醒"','"你的天花板不是对手——是行业增速本身"']
+};
+const IND_AVG = {
+  '3c':{brand:60,channel:68,data:63,name:'3C数码家电'},
+  'fashion':{brand:55,channel:72,data:58,name:'服装鞋帽'},
+  'beauty':{brand:67,channel:60,data:55,name:'美妆个护'},
+  'fmcg':{brand:62,channel:71,data:48,name:'快消日化母婴'},
+  'outdoor':{brand:50,channel:55,data:38,name:'户外运动'},
+  'home':{brand:48,channel:62,data:42,name:'家居生活'},
+  'other':{brand:55,channel:60,data:45,name:'其他'}
+};
+const INSIGHTS = {
+  '全域领航者':{s:['你的系统在替你做决策——但系统优化的只是效率，不是方向','你的规模在催你做选择——做深还是做宽，数据和直觉可能给出不同答案','你的团队在等你拍板——哪怕数据就在他们手边'],w:['你的增长高度依赖你个人——你一旦松懈，业务立刻感受到','你的数据能力配不上你的业务规模——你在用直觉做本该数据做的事','你的团队在等你的判断——没有人敢用数据挑战你的直觉']},
+  '信念感召型':{s:['你的渠道还没跟上你的品牌力——好故事没有足够多的舞台','你的增长曲线健康但不够陡——精准意味着克制，克制意味着天花板','你在做选择题——每多铺一个渠道，品牌质感可能稀释一分'],w:['你的复购率可能远低于行业平均——人来了，但没找到留下的理由','你对用户的了解停留在"大概"——没有数据支撑的营销，越做越贵','竞品只要敢砸钱，你的市场份额立刻被蚕食——声量可以买，但品牌不能']},
+  '光环独行侠':{s:['你能看见渠道短板，但渠道建设不是靠看出来的，是靠铺出来的','你的数据在告诉你渠道转化率低——但数据没法告诉你怎么跟retailer谈判','你的品牌在替你撑场——但一个人撑不了所有渠道'],w:['用户听说过你，但买不到你——品牌力和渠道力之间的断层才是真正的风险','你不知道用户在哪里流失——可能不是产品不好，是买不到','你的品牌叙事没有本地化——在海外，好感度和购买决策之间隔着渠道']},
+  '地盘深耕者':{s:['你的渠道效率碾压对手，但渠道之上是品牌——没有品牌的渠道，随时可以被替换','你在帮渠道赚钱，但渠道不会帮你建品牌','你的数据在优化存量，但谁在帮你找增量？'],w:['你的渠道在运转，但你不知道哪个渠道在帮你赚钱，哪个在帮你花钱','你做决策凭经验，但经验只能处理你见过的问题','你的团队执行力强，但执行力跑错方向比不跑更危险']},
+  '潜力蓄能者':{s:['你什么都有，但没有一项碾压——均衡是安全牌，不是赢牌','你的数据在告诉你"都不差"——但数据没法告诉你"该押哪个"','你需要一个尖刺——品牌力冲80，或渠道力冲80，比三力都70更有杀伤力'],w:['你什么都有一点，但什么都差一口气——差的那口气，往往是数据力','你的决策在靠经验兜底——稳是稳了，但稳不是增长','你需要选一条腿先迈出去——三力同时提，不如一力先破80']},
+  '渠道共生型':{s:['你的数据在告诉你渠道依赖的代价——但你还需要一把撬开渠道的锤子，那把锤子叫品牌','你的渠道关系是你的生存基础，但不是你的增长引擎','你在用数据优化渠道合作——但优化的天花板是渠道本身的天花板'],w:['你的利润被渠道压缩——你知道，但你不确定压缩了多少','你跟用户之间隔着一层渠道——你感觉得到他们，但触不到他们','渠道一旦翻脸，你没有B计划——因为你没有品牌和数据做后盾']},
+  '暗流涌动者':{s:['你有制造能力，但没有品牌溢价——代工利润和品牌利润差3-5倍','你的数据在帮你降本，但降本有极限——增收需要品牌','你离出圈只差一个品牌故事——渠道你有了，数据你有了，缺的是让用户记住你的理由'],w:['你在替别人做产品——品质是你的，品牌是别人的','你不知道最终消费者是谁——你跟市场之间隔了不止一层','你的利润率在告诉你——制造利润和品牌利润是两个世界']},
+  '迷雾行者':{s:['你的数据在告诉你"都不够好"——好消息是，你知道从哪改起','你的品牌力是最大的短板——数据能帮你选渠道，但选不了品牌','你需要一次聚焦——不是三力同时提，是最弱的那条腿先迈一步'],w:['你的品牌、渠道、数据都没有明显优势——三力都在中等以下','你的决策靠经验和惯性——但惯性只能让你转圈，不能让你前进','你最需要的是一面镜子，不是一个引擎——先看清，再加速']},
+  '潮退守望者':{s:['你的数据在告诉你风险在哪——但数据不能替你行动','你的品牌力和渠道力都在补——但两条腿同时打石膏，先扶哪条？','你最需要的是选择——不是三力同时补，是先让一条腿站起来'],w:['你的渠道在帮你赚钱，但你不确定哪个渠道在帮你，哪个在消耗你','你跟用户之间隔着一层渠道——你感觉得到他们，但触不到他们','你的团队有一套好用的经验系统，但它没法应对下一个你没见过的局面']},
+  '满帆版':{s:['你的天花板不是对手——是行业增速本身','你的组织可能比你的市场先遇到瓶颈——系统化能力要跟上规模','你是少数人——这个位置最稀缺的不是能力，是保持清醒'],w:['你的天花板不是对手——是行业增速本身','你的组织可能比你的市场先遇到瓶颈——系统化能力要跟上规模','你是少数人——这个位置最稀缺的不是能力，是保持清醒']}
+};
+
+// =====================================================
+// STATE
+// =====================================================
+const answers = {};
+let currentQ = 0; // index in Q_ORDER
+let shuffledOpts = {}; // store shuffled option orders
+
+// Shuffle C/D/fake options once
+Q_ORDER.forEach(qid => {
+  const q = QS[qid];
+  if (q.dim === 'channel' || q.dim === 'data' || q.dim === 'fake') {
+    const indices = q.opts.map((_,i)=>i);
+    for (let i = indices.length-1; i > 0; i--) {
+      const j = Math.floor(Math.random()*(i+1));
+      [indices[i],indices[j]] = [indices[j],indices[i]];
+    }
+    shuffledOpts[qid] = indices;
+  } else {
+    shuffledOpts[qid] = q.opts.map((_,i)=>i);
+  }
+});
+
+// =====================================================
+// RENDER
+// =====================================================
+function render(screen, data) {
+  const app = document.getElementById('app');
+  app.innerHTML = '';
+  const div = document.createElement('div');
+  div.className = 'screen active ' + screen;
+
+  switch(screen) {
+    case 'start': renderStart(div); break;
+    case 'question': renderQuestion(div); break;
+    case 'info': renderInfo(div); break;
+    case 'result': renderResult(div); break;
+    case 'share': renderShare(div); break;
+  }
+
+  app.appendChild(div);
+  window.scrollTo(0,0);
+}
+
+// --- START ---
+function renderStart(div) {
+  div.innerHTML = `
+    <div class="start-badge"><span class="dot"></span> 品牌增长诊断工具</div>
+    <h1>三力诊断</h1>
+    <div class="tagline">你的品牌增长，<br>卡在哪一步？</div>
+    <div class="tagline-sub">测出你品牌的品牌力·渠道力·数据力<br>找到增长的关键杠杆</div>
+    <div class="meta-row">
+      <div class="meta-item"><div class="meta-val">16</div><div class="meta-label">道题目</div></div>
+      <div class="meta-item"><div class="meta-val">3</div><div class="meta-label">分钟完成</div></div>
+      <div class="meta-item"><div class="meta-val">19</div><div class="meta-label">种类型</div></div>
+    </div>
+    <button class="btn-primary" onclick="startTest()">开始测试</button>
+    <div class="footer-text">三力智策 · SANLI AI STRATEGY</div>
+  `;
+}
+
+function startTest() {
+  currentQ = 0;
+  render('question');
+}
+
+// --- QUESTION ---
+function renderQuestion(div) {
+  const qid = Q_ORDER[currentQ];
+  const q = QS[qid];
+  const total = Q_ORDER.length;
+  const progress = ((currentQ) / total * 100).toFixed(0);
+
+  const dimLabel = q.dim === 'brand' ? '品牌力' : (q.dim === 'channel' ? '渠道力' : (q.dim === 'data' ? '数据力' : '综合'));
+  const dimClass = q.dim;
+
+  let optsHtml = '';
+  const order = shuffledOpts[qid];
+  order.forEach(idx => {
+    const o = q.opts[idx];
+    const sel = answers[qid] && answers[qid].idx === idx ? ' selected' : '';
+    optsHtml += `
+      <div class="opt-card${sel}" onclick="selectOpt('${qid}',${idx})">
+        <div class="opt-radio"><div class="inner"></div></div>
+        <div class="opt-text"><span class="opt-highlight">${o.t}</span> — ${o.d}</div>
+      </div>
+    `;
+  });
+
+  div.className = 'screen active question';
+  div.innerHTML = `
+    <div class="q-topbar">
+      <button class="q-back" onclick="prevQ()">←</button>
+      <div class="q-progress-wrap">
+        <div class="q-progress-meta">
+          <span class="dim-label ${dimClass}">${dimLabel}</span>
+          <span>${currentQ+1} / ${total}</span>
+        </div>
+        <div class="q-progress-track">
+          <div class="q-progress-fill" style="width:${progress}%"></div>
+        </div>
+      </div>
+    </div>
+    <div class="q-content">
+      <div class="q-number">Q${currentQ+1}</div>
+      <div class="q-text">${q.text}</div>
+      <div class="q-options">${optsHtml}</div>
+    </div>
+  `;
+}
+
+function selectOpt(qid, idx) {
+  const q = QS[qid];
+  const o = q.opts[idx];
+  answers[qid] = { key: o.k, score: o.s, adj: o.adj||null, idx: idx };
+
+  // Visual feedback then auto-advance
+  document.querySelectorAll('.opt-card').forEach(c => c.classList.remove('selected'));
+  event.currentTarget.classList.add('selected');
+
+  setTimeout(() => {
+    if (currentQ < Q_ORDER.length - 1) {
+      currentQ++;
+      render('question');
+    } else {
+      render('info');
+    }
+  }, 350);
+}
+
+function prevQ() {
+  if (currentQ > 0) {
+    currentQ--;
+    render('question');
+  } else {
+    render('start');
+  }
+}
+
+// --- INFO ---
+function renderInfo(div) {
+  div.innerHTML = `
+    <div class="info-header">
+      <h2>即将揭晓结果</h2>
+      <p>填写以下信息，获取你的专属三力诊断报告</p>
+    </div>
+    <div class="form-field">
+      <label>你的称呼<span class="req">*</span></label>
+      <input type="text" id="f_name" placeholder="我们怎么称呼你" maxlength="20">
+    </div>
+    <div class="form-field">
+      <label>所在行业<span class="req">*</span></label>
+      <select id="f_industry">
+        <option value="">请选择行业</option>
+        <option value="3c">3C数码家电</option>
+        <option value="fashion">服装鞋帽</option>
+        <option value="beauty">美妆个护</option>
+        <option value="fmcg">快消日化母婴</option>
+        <option value="outdoor">户外运动</option>
+        <option value="home">家居生活</option>
+        <option value="other">其他</option>
+      </select>
+    </div>
+    <div class="form-field">
+      <label>品牌名称<span class="req">*</span></label>
+      <input type="text" id="f_brand" placeholder="你的品牌叫什么" maxlength="30">
+    </div>
+    <button class="btn-submit" onclick="submitInfo()">查看我的三力诊断</button>
+  `;
+}
+
+function submitInfo() {
+  const name = document.getElementById('f_name').value.trim();
+  const ind = document.getElementById('f_industry').value;
+  const brand = document.getElementById('f_brand').value.trim();
+  if (!name || !ind || !brand) { alert('请填写完整信息'); return; }
+  window._userName = name;
+  window._industry = ind;
+  window._brandName = brand;
+
+  // Calculate scores and type
+  const sc = calcScores();
+  const {base,fullSail} = getType(sc);
+  const dk = sc.data.level==='strong'?'s':'w';
+  const sub = fullSail ? '全域领航者·满帆版' : SUB_MAP[base][dk];
+  const tk = fullSail ? '满帆版' : base;
+  const hex = HEX_MAP[tk];
+
+  // Save to localStorage as backup
+  const record = {
+    created_at: new Date().toISOString(),
+    user_name: name, industry: ind, brand_name: brand,
+    brand_score: sc.brand.score, channel_score: sc.channel.score, data_score: sc.data.score,
+    base_type: base, sub_type: sub, hexagram: hex.name,
+    answers: answers
+  };
+  const saved = JSON.parse(localStorage.getItem('sanli_records') || '[]');
+  saved.push(record);
+  localStorage.setItem('sanli_records', JSON.stringify(saved));
+
+  // Submit to backend (auto-detect: Render in prod, localhost in dev)
+  const API_BASE = location.hostname === 'localhost' ? '' : 'https://sanli-quiz-api.onrender.com';
+  fetch(API_BASE + '/api/submit', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      user_name: name, industry: ind, brand_name: brand,
+      brand_score: sc.brand.score, channel_score: sc.channel.score, data_score: sc.data.score,
+      base_type: base, sub_type: sub, hexagram: hex.name,
+      answers: answers
+    })
+  }).catch(() => {}); // silently fail, localStorage has backup
+
+  render('result');
+}
+
+// --- SCORING ---
+function calcScores() {
+  let b=0,c=0,d=0;
+  ['B1','B2','B3','B4','B5'].forEach(id=>{if(answers[id])b+=answers[id].score;});
+  ['C1','C2','C3','C4','C5'].forEach(id=>{if(answers[id])c+=answers[id].score;});
+  ['D1','D2','D3','D4','D5'].forEach(id=>{if(answers[id])d+=answers[id].score;});
+  if(answers['fake2']&&answers['fake2'].adj){
+    const a=answers['fake2'].adj;
+    if(a.brand)b+=a.brand; if(a.channel)c+=a.channel; if(a.data)d+=a.data;
+  }
+  b=Math.max(0,Math.min(100,b));
+  c=Math.max(0,Math.min(100,c));
+  d=Math.max(0,Math.min(100,d));
+  const lv=v=>v>=80?'strong':(v>=40?'medium':'weak');
+  const lt=v=>v>=80?'强':(v>=40?'中':'弱');
+  return {
+    brand:{score:b,level:lv(b),text:lt(b)},
+    channel:{score:c,level:lv(c),text:lt(c)},
+    data:{score:d,level:lv(d),text:lt(d)}
+  };
+}
+
+function getType(sc) {
+  if(sc.brand.level==='strong'&&sc.channel.level==='strong'&&sc.data.level==='strong')
+    return {base:'全域领航者',fullSail:true};
+  return {base:TYPE_MAP[sc.brand.level+'_'+sc.channel.level]||'潜力蓄能者',fullSail:false};
+}
+
+function getPercentile(s) {
+  if(s>=95)return 99;if(s>=90)return 95;if(s>=85)return 90;if(s>=80)return 85;
+  if(s>=75)return 75;if(s>=70)return 65;if(s>=65)return 55;if(s>=60)return 45;
+  if(s>=55)return 35;if(s>=50)return 28;if(s>=45)return 22;if(s>=40)return 18;
+  if(s>=35)return 12;if(s>=30)return 8;if(s>=25)return 5;if(s>=20)return 3;return 1;
+}
+
+// --- RESULT ---
+function renderResult(div) {
+  const sc = calcScores();
+  const {base,fullSail} = getType(sc);
+  const dk = sc.data.level==='strong'?'s':'w';
+  const sub = fullSail ? '全域领航者·满帆版' : SUB_MAP[base][dk];
+  const tk = fullSail ? '满帆版' : base;
+  const hex = HEX_MAP[tk];
+  const diag = DIAG_MAP[tk];
+  const sigs = SIG_MAP[tk];
+  const ins = INSIGHTS[tk][dk];
+  const ind = IND_AVG[window._industry||'other'];
+  const pB=getPercentile(sc.brand.score),pC=getPercentile(sc.channel.score),pD=getPercentile(sc.data.score);
+
+  const cmpRow = (label,cls,yourScore,avgScore) => `
+    <div class="r-cmp-row">
+      <span class="r-cmp-label" style="color:var(--${cls})">${label}</span>
+      <div class="r-cmp-bar-area">
+        <div class="r-cmp-you" style="width:${yourScore}%;background:var(--${cls})"></div>
+        <div class="r-cmp-avg-line" style="left:${avgScore}%"></div>
+      </div>
+      <span class="r-cmp-avg-val">均${avgScore}</span>
+    </div>`;
+
+  div.innerHTML = `
+    <div class="r-header">
+      <div class="r-type-label">你的品牌类型</div>
+      <div class="r-type-name ${fullSail?'full-sail':''}">${base}</div>
+      <div class="r-subtype">${sub}</div>
+    </div>
+
+    <div class="r-seal">
+      <span class="r-seal-symbol">${hex.sym}</span>
+      <span class="r-seal-name">${hex.name}</span>
+    </div>
+
+    <div class="r-quote">${sigs[0]}</div>
+    <div class="r-hexagram">${hex.qt}</div>
+
+    <div class="r-scores">
+      <div class="r-score-row">
+        <span class="r-score-label brand">品牌力</span>
+        <div class="r-score-track"><div class="r-score-fill brand" style="width:0%" data-w="${sc.brand.score}%"></div></div>
+        <span class="r-score-num">${sc.brand.score}</span>
+        <span class="r-score-tag ${sc.brand.level}">${sc.brand.text}</span>
+      </div>
+      <div class="r-score-row">
+        <span class="r-score-label channel">渠道力</span>
+        <div class="r-score-track"><div class="r-score-fill channel" style="width:0%" data-w="${sc.channel.score}%"></div></div>
+        <span class="r-score-num">${sc.channel.score}</span>
+        <span class="r-score-tag ${sc.channel.level}">${sc.channel.text}</span>
+      </div>
+      <div class="r-score-row">
+        <span class="r-score-label data">数据力</span>
+        <div class="r-score-track"><div class="r-score-fill data" style="width:0%" data-w="${sc.data.score}%"></div></div>
+        <span class="r-score-num">${sc.data.score}</span>
+        <span class="r-score-tag ${sc.data.level}">${sc.data.text}</span>
+      </div>
+    </div>
+
+    <div class="r-radar"><canvas id="radarC" width="220" height="220"></canvas></div>
+
+    <div class="r-industry">
+      <h4>${ind.name}行业对标（V1.0预估值）</h4>
+      ${cmpRow('品牌力','brand',sc.brand.score,ind.brand)}
+      ${cmpRow('渠道力','channel',sc.channel.score,ind.channel)}
+      ${cmpRow('数据力','data',sc.data.score,ind.data)}
+      <div class="r-percentile">
+        超过${pB}%的同行业品牌（品牌力）· 超过${pC}%（渠道力）· 超过${pD}%（数据力）
+      </div>
+    </div>
+
+    <div class="r-diagnosis">
+      <div class="r-diagnosis-text">${diag}</div>
+      ${ins.map(i=>`<div class="r-insight"><div class="r-insight-dot"></div><div class="r-insight-text">${i}</div></div>`).join('')}
+    </div>
+
+    <div class="r-actions">
+      <button class="btn-share" onclick="render('share')">生成分享图</button>
+      <button class="btn-retry" onclick="location.reload()">重新测试</button>
+    </div>
+  `;
+
+  // Animate score bars
+  setTimeout(()=>{
+    document.querySelectorAll('.r-score-fill').forEach(el=>{
+      el.style.width = el.dataset.w;
+    });
+  }, 100);
+
+  // Draw radar
+  setTimeout(()=>drawRadar(sc), 150);
+}
+
+function drawRadar(sc) {
+  const c = document.getElementById('radarC');
+  if(!c) return;
+  const ctx = c.getContext('2d');
+  const cx=110, cy=110, R=80;
+  ctx.clearRect(0,0,220,220);
+
+  // Grid
+  [0.25,0.5,0.75,1].forEach(l=>{
+    ctx.beginPath();
+    for(let i=0;i<3;i++){
+      const a = Math.PI*2/3*i - Math.PI/2;
+      const x=cx+R*l*Math.cos(a), y=cy+R*l*Math.sin(a);
+      i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+    }
+    ctx.closePath();
+    ctx.strokeStyle='rgba(255,255,255,0.06)';
+    ctx.stroke();
+  });
+
+  // Axis lines
+  for(let i=0;i<3;i++){
+    const a = Math.PI*2/3*i - Math.PI/2;
+    ctx.beginPath();
+    ctx.moveTo(cx,cy);
+    ctx.lineTo(cx+R*Math.cos(a),cy+R*Math.sin(a));
+    ctx.strokeStyle='rgba(255,255,255,0.06)';
+    ctx.stroke();
+  }
+
+  // Labels
+  const labels = [
+    {t:'品牌力',x:cx,y:cy-R-16,c:'#D4A56A'},
+    {t:'渠道力',x:cx+R+16,y:cy+R*0.5+10,c:'#7CA0B8'},
+    {t:'数据力',x:cx-R-16,y:cy+R*0.5+10,c:'#6BAF99'}
+  ];
+  ctx.font='12px -apple-system, "PingFang SC", sans-serif';
+  ctx.textAlign='center';
+  labels.forEach(l=>{ctx.fillStyle=l.c;ctx.fillText(l.t,l.x,l.y);});
+
+  // Data
+  const pts=[sc.brand.score/100, sc.channel.score/100, sc.data.score/100];
+  const angles=[-Math.PI/2, -Math.PI/2+Math.PI*2/3, -Math.PI/2+Math.PI*4/3];
+
+  // Fill
+  ctx.beginPath();
+  pts.forEach((p,i)=>{
+    const x=cx+R*p*Math.cos(angles[i]), y=cy+R*p*Math.sin(angles[i]);
+    i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+  });
+  ctx.closePath();
+  ctx.fillStyle='rgba(196,162,101,0.12)';
+  ctx.fill();
+  ctx.strokeStyle='rgba(196,162,101,0.6)';
+  ctx.lineWidth=2;
+  ctx.stroke();
+
+  // Dots
+  pts.forEach((p,i)=>{
+    const x=cx+R*p*Math.cos(angles[i]), y=cy+R*p*Math.sin(angles[i]);
+    ctx.beginPath();
+    ctx.arc(x,y,4,0,Math.PI*2);
+    ctx.fillStyle='#C4A265';
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(x,y,7,0,Math.PI*2);
+    ctx.strokeStyle='rgba(196,162,101,0.3)';
+    ctx.lineWidth=1;
+    ctx.stroke();
+  });
+}
+
+// --- SHARE ---
+function renderShare(div) {
+  const sc = calcScores();
+  const {base,fullSail} = getType(sc);
+  const dk = sc.data.level==='strong'?'s':'w';
+  const sub = fullSail ? '全域领航者·满帆版' : SUB_MAP[base][dk];
+  const tk = fullSail ? '满帆版' : base;
+  const hex = HEX_MAP[tk];
+  const sigs = SIG_MAP[tk];
+
+  div.innerHTML = `
+    <div class="share-card" id="shareCard">
+      <div class="sc-label">三力诊断</div>
+      <div class="sc-type ${fullSail?'full-sail':''}">${base}</div>
+      <div class="sc-subtype">${sub}</div>
+      <div class="sc-scores">
+        <div class="sc-score-item"><div class="sc-score-val" style="color:var(--brand)">${sc.brand.score}</div><div class="sc-score-lbl">品牌力</div></div>
+        <div class="sc-score-item"><div class="sc-score-val" style="color:var(--channel)">${sc.channel.score}</div><div class="sc-score-lbl">渠道力</div></div>
+        <div class="sc-score-item"><div class="sc-score-val" style="color:var(--data)">${sc.data.score}</div><div class="sc-score-lbl">数据力</div></div>
+      </div>
+      <div class="sc-quote">${sigs[0]}</div>
+      <div class="sc-seal-area">
+        <div class="sc-seal">
+          <span class="sc-seal-symbol">${hex.sym}</span>
+          <span class="sc-seal-name">${hex.name}</span>
+        </div>
+      </div>
+      <div class="sc-footer">三力智策 · 让中国品牌找到增长的确定性</div>
+    </div>
+
+    <div class="share-actions">
+      <button class="btn-save-img" onclick="saveShareImage()">保存图片</button>
+    </div>
+
+    <div class="lead-section">
+      <h3>解锁完整诊断</h3>
+      <p>预约15分钟GTM诊断通话，获取针对你品牌的增长建议</p>
+      <button class="btn-wechat" onclick="alert('即将跳转公众号关注页面')">关注公众号 · 预约诊断</button>
+      <button class="btn-consult" onclick="alert('即将跳转预约页面')">预约15分钟GTM诊断通话 →</button>
+    </div>
+  `;
+}
+
+async function saveShareImage() {
+  const card = document.getElementById('shareCard');
+  if (!card) return;
+  try {
+    const canvas = await html2canvas(card, {
+      backgroundColor: '#0c0d12',
+      scale: 2,
+      useCORS: true,
+      logging: false
+    });
+    const link = document.createElement('a');
+    link.download = '三力诊断_' + (window._brandName || '品牌') + '.png';
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+  } catch (err) {
+    console.error('Save image failed:', err);
+    alert('图片生成失败，请截图保存');
+  }
+}
+
+// =====================================================
+// INIT
+// =====================================================
+render('start');
+</script>
+</body>
+</html>
