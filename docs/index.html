@@ -505,8 +505,8 @@
 
   /* Radar */
   .r-radar {
-    width: 220px;
-    height: 220px;
+    width: 260px;
+    height: 260px;
     margin: 0 auto 28px;
   }
 
@@ -1270,7 +1270,7 @@ function renderResult(div) {
       </div>
     </div>
 
-    <div class="r-radar"><canvas id="radarC" width="220" height="220"></canvas></div>
+    <div class="r-radar"><canvas id="radarC" width="260" height="260"></canvas></div>
 
     <div class="r-industry">
       <h4>${ind.name}行业对标（V1.0预估值）</h4>
@@ -1308,8 +1308,8 @@ function drawRadar(sc) {
   const c = document.getElementById('radarC');
   if(!c) return;
   const ctx = c.getContext('2d');
-  const cx=110, cy=110, R=80;
-  ctx.clearRect(0,0,220,220);
+  const cx=130, cy=130, R=90;
+  ctx.clearRect(0,0,260,260);
 
   // Grid
   [0.25,0.5,0.75,1].forEach(l=>{
@@ -1336,9 +1336,9 @@ function drawRadar(sc) {
 
   // Labels
   const labels = [
-    {t:'品牌力',x:cx,y:cy-R-16,c:'#D4A56A'},
-    {t:'渠道力',x:cx+R+16,y:cy+R*0.5+10,c:'#7CA0B8'},
-    {t:'数据力',x:cx-R-16,y:cy+R*0.5+10,c:'#6BAF99'}
+    {t:'品牌力',x:cx,y:cy-R-20,c:'#D4A56A'},
+    {t:'渠道力',x:cx+R+24,y:cy+R*0.5+14,c:'#7CA0B8'},
+    {t:'数据力',x:cx-R-24,y:cy+R*0.5+14,c:'#6BAF99'}
   ];
   ctx.font='12px -apple-system, "PingFang SC", sans-serif';
   ctx.textAlign='center';
