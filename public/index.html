@@ -1161,7 +1161,7 @@ function submitInfo() {
   // Submit to backend (auto-detect environment)
   const isLocal = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
   const isFile = location.protocol === 'file:';
-  const API_BASE = isLocal ? '' : 'https://sanli-quiz-api.onrender.com';
+  const API_BASE = isLocal ? '' : 'https://sanli-quiz.onrender.com';
 
   if (isFile) {
     // file:// 协议无法通过 HTTP 提交，提示用户
