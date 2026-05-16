@@ -11,12 +11,11 @@ const ADMIN_KEY = process.env.ADMIN_KEY || 'sanli2026';
 function requireAuth(req, res, next) {
   const key = req.query.key || (req.headers['authorization'] || '').replace('Bearer ', '');
   if (key !== ADMIN_KEY) {
-    // Use originalUrl so it works correctly when middleware is mounted with a path prefix
     const urlPath = req.originalUrl || req.url || req.path;
     if (urlPath.startsWith('/api/')) {
+      res.setHeader('Content-Type', 'application/json; charset=utf-8');
       return res.status(401).json({ error: '未授权' });
     }
-    // If it's the admin page, render a password prompt
     return res.send(`
       <!DOCTYPE html>
       <html lang="zh-CN">
@@ -52,7 +51,6 @@ function requireAuth(req, res, next) {
             window.location.href = '/admin?key=' + encodeURIComponent(key);
           }
           document.getElementById('key').addEventListener('keydown', e => { if(e.key==='Enter') login(); });
-          // Show error if redirected with ?error=1
           if (new URLSearchParams(location.search).get('error') === '1') {
             document.getElementById('err').style.display = 'block';
           }
@@ -63,7 +61,6 @@ function requireAuth(req, res, next) {
   }
   next();
 }
-// Only protect admin routes, NOT the public submit API or static files
 app.use('/admin', requireAuth);
 app.use('/api/submissions', requireAuth);
 app.use('/api/stats', requireAuth);
@@ -77,17 +74,12 @@ const allowedOrigins = [
 ];
 app.use(cors({
   origin: function(origin, callback) {
-    // Allow requests with no origin (mobile apps, curl)
     if (!origin) return callback(null, true);
     if (allowedOrigins.some(o => origin.startsWith(o))) return callback(null, true);
-    callback(null, true); // Allow all for now, tighten later
+    callback(null, true);
   }
 }));
 app.use(express.json({ limit: '1mb' }));
-app.use((req, res, next) => {
-  res.setHeader('Content-Type', 'application/json; charset=utf-8');
-  next();
-});
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Database
@@ -113,31 +105,38 @@ db.exec(`
   )
 `);
 
+// Helper: send JSON with UTF-8 charset
+function json(res, data, status) {
+  res.setHeader('Content-Type', 'application/json; charset=utf-8');
+  if (status) res.status(status);
+  res.json(data);
+}
+
 // API: Submit test result
 app.post('/api/submit', (req, res) => {
   try {
     const { user_name, industry, brand_name, brand_score, channel_score, data_score, base_type, sub_type, hexagram, answers } = req.body;
-    
+
     if (!user_name || !industry || !brand_name) {
-      return res.status(400).json({ error: '缺少必填字段' });
+      return json(res, { error: '缺少必填字段' }, 400);
     }
 
     const stmt = db.prepare(`
       INSERT INTO submissions (user_name, industry, brand_name, brand_score, channel_score, data_score, base_type, sub_type, hexagram, answers)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
-    
+
     const result = stmt.run(
       user_name, industry, brand_name,
       brand_score, channel_score, data_score,
       base_type, sub_type, hexagram,
       JSON.stringify(answers)
     );
-    
-    res.json({ success: true, id: result.lastInsertRowid });
+
+    json(res, { success: true, id: result.lastInsertRowid });
   } catch (err) {
     console.error('Submit error:', err);
-    res.status(500).json({ error: '提交失败' });
+    json(res, { error: '提交失败' }, 500);
   }
 });
 
@@ -145,24 +144,24 @@ app.post('/api/submit', (req, res) => {
 app.get('/api/submissions', (req, res) => {
   try {
     const rows = db.prepare('SELECT * FROM submissions ORDER BY created_at DESC LIMIT 200').all();
-    res.json(rows);
+    json(res, rows);
   } catch (err) {
     console.error('List error:', err);
-    res.status(500).json({ error: '查询失败' });
+    json(res, { error: '查询失败' }, 500);
   }
 });
 
 // API: Stats
-app.get('/api/stats', (req, req2) => {
+app.get('/api/stats', (req, res) => {
   try {
     const total = db.prepare('SELECT COUNT(*) as count FROM submissions').get().count;
     const byType = db.prepare('SELECT base_type, COUNT(*) as count FROM submissions GROUP BY base_type ORDER BY count DESC').all();
     const byIndustry = db.prepare('SELECT industry, COUNT(*) as count FROM submissions GROUP BY industry ORDER BY count DESC').all();
     const avgScores = db.prepare('SELECT AVG(brand_score) as avg_brand, AVG(channel_score) as avg_channel, AVG(data_score) as avg_data FROM submissions').get();
-    res.json({ total, byType, byIndustry, avgScores });
+    json(res, { total, byType, byIndustry, avgScores });
   } catch (err) {
     console.error('Stats error:', err);
-    res.status(500).json({ error: '查询失败' });
+    json(res, { error: '查询失败' }, 500);
   }
 });
 
@@ -170,11 +169,11 @@ app.get('/api/stats', (req, req2) => {
 app.delete('/api/submissions/:id', (req, res) => {
   try {
     const result = db.prepare('DELETE FROM submissions WHERE id = ?').run(req.params.id);
-    if (result.changes === 0) return res.status(404).json({ error: '记录不存在' });
-    res.json({ success: true });
+    if (result.changes === 0) return json(res, { error: '记录不存在' }, 404);
+    json(res, { success: true });
   } catch (err) {
     console.error('Delete error:', err);
-    res.status(500).json({ error: '删除失败' });
+    json(res, { error: '删除失败' }, 500);
   }
 });
 
