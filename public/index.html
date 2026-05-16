@@ -1158,8 +1158,16 @@ function submitInfo() {
   saved.push(record);
   localStorage.setItem('sanli_records', JSON.stringify(saved));
 
-  // Submit to backend (auto-detect: Render in prod, localhost in dev)
-  const API_BASE = location.hostname === 'localhost' ? '' : 'https://sanli-quiz-api.onrender.com';
+  // Submit to backend (auto-detect environment)
+  const isLocal = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+  const isFile = location.protocol === 'file:';
+  const API_BASE = isLocal ? '' : 'https://sanli-quiz-api.onrender.com';
+
+  if (isFile) {
+    // file:// 协议无法通过 HTTP 提交，提示用户
+    alert('⚠️ 请通过 http://localhost:3000 访问此页面，否则提交数据无法保存到服务器。\n\n当前通过本地文件打开，数据仅保存在浏览器本地。');
+  }
+
   fetch(API_BASE + '/api/submit', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

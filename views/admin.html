@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>三力诊断 · 管理后台</title>
+<style>
+  :root {
+    --bg: #08090c;
+    --bg2: #0e1015;
+    --card: #15171e;
+    --border: #23262f;
+    --text: #e4e2df;
+    --text2: #a0a0b2;
+    --accent: #C4A265;
+    --red: #C23A2B;
+    --green: #2ECC71;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family: -apple-system,'PingFang SC','Microsoft YaHei',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; padding:24px 16px; }
+  .container { max-width:960px; margin:0 auto; }
+
+  /* Header */
+  .header { display:flex; align-items:center; justify-content:space-between; margin-bottom:24px; flex-wrap:wrap; gap:12px; }
+  .header h1 { font-size:20px; font-weight:600; }
+  .header h1 span { color:var(--accent); }
+  .header-btns { display:flex; gap:8px; }
+  .btn { padding:8px 16px; border-radius:8px; border:none; font-size:13px; cursor:pointer; font-weight:500; }
+  .btn-export { background:var(--accent); color:#08090c; }
+  .btn-logout { background:var(--border); color:var(--text2); }
+  .btn:hover { opacity:0.85; }
+
+  /* Stats Cards */
+  .stats { display:grid; grid-template-columns:repeat(auto-fit, minmax(160px,1fr)); gap:12px; margin-bottom:24px; }
+  .stat-card { background:var(--card); border:1px solid var(--border); border-radius:10px; padding:16px; }
+  .stat-card .label { font-size:12px; color:var(--text2); margin-bottom:6px; }
+  .stat-card .value { font-size:24px; font-weight:700; }
+  .stat-card .value.gold { color:var(--accent); }
+  .stat-card .value.red { color:var(--red); }
+  .stat-card .value.green { color:var(--green); }
+
+  /* Filters */
+  .filters { display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap; }
+  .filters select, .filters input {
+    padding:7px 12px; border-radius:8px; border:1px solid var(--border); background:var(--bg2); color:var(--text); font-size:13px; outline:none;
+  }
+  .filters select:focus, .filters input:focus { border-color:var(--accent); }
+  .filters input::placeholder { color:var(--text2); }
+
+  /* Table */
+  .table-wrap { background:var(--card); border:1px solid var(--border); border-radius:10px; overflow:hidden; overflow-x:auto; }
+  table { width:100%; border-collapse:collapse; font-size:13px; min-width:800px; }
+  thead { background:var(--bg2); }
+  th { padding:10px 14px; text-align:left; font-weight:600; color:var(--text2); font-size:12px; text-transform:uppercase; letter-spacing:0.5px; white-space:nowrap; }
+  td { padding:10px 14px; border-top:1px solid var(--border); white-space:nowrap; }
+  tr:hover { background:rgba(196,162,101,0.04); }
+  .type-badge { display:inline-block; padding:2px 8px; border-radius:20px; font-size:11px; font-weight:600; }
+  .type-品牌型 { background:rgba(212,165,106,0.15); color:#D4A56A; }
+  .type-渠道型 { background:rgba(124,160,184,0.15); color:#7CA0B8; }
+  .type-数据型 { background:rgba(107,175,153,0.15); color:#6BAF99; }
+  .score { font-weight:700; font-size:14px; }
+  .score-high { color:var(--green); }
+  .score-mid { color:var(--accent); }
+  .score-low { color:var(--red); }
+  .time { color:var(--text2); font-size:12px; }
+  .actions button { background:none; border:none; color:var(--text2); cursor:pointer; font-size:13px; padding:4px 8px; border-radius:6px; }
+  .actions button:hover { background:var(--bg2); color:var(--accent); }
+
+  /* Empty */
+  .empty { text-align:center; padding:48px 24px; color:var(--text2); font-size:14px; }
+
+  /* Toast */
+  .toast { position:fixed; top:20px; right:20px; background:var(--card); border:1px solid var(--border); border-radius:8px; padding:12px 20px; font-size:13px; color:var(--text); opacity:0; transition:opacity 0.3s; pointer-events:none; z-index:999; }
+  .toast.show { opacity:1; }
+
+  @media (max-width:600px) {
+    body { padding:16px 10px; }
+    .header h1 { font-size:17px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <div class="header">
+    <h1>🔒 管理后台 · <span>三力诊断</span></h1>
+    <div class="header-btns">
+      <button class="btn btn-export" onclick="exportCSV()">📥 导出 CSV</button>
+      <button class="btn btn-logout" onclick="logout()">退出</button>
+    </div>
+  </div>
+
+  <div class="stats" id="stats">
+    <div class="stat-card">
+      <div class="label">总提交数</div>
+      <div class="value gold" id="stat-total">–</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">品牌力均值</div>
+      <div class="value" id="stat-brand">–</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">渠道力均值</div>
+      <div class="value" id="stat-channel">–</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">数据力均值</div>
+      <div class="value" id="stat-data">–</div>
+    </div>
+  </div>
+
+  <div class="filters">
+    <input type="text" id="filter-name" placeholder="搜索姓名/品牌…" oninput="renderTable()" />
+    <select id="filter-type" onchange="renderTable()">
+      <option value="">全部类型</option>
+      <option value="品牌型">品牌型</option>
+      <option value="渠道型">渠道型</option>
+      <option value="数据型">数据型</option>
+    </select>
+    <select id="filter-industry" onchange="renderTable()">
+      <option value="">全部行业</option>
+    </select>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>时间</th>
+          <th>姓名</th>
+          <th>行业</th>
+          <th>品牌</th>
+          <th>类型</th>
+          <th>品牌力</th>
+          <th>渠道力</th>
+          <th>数据力</th>
+          <th>操作</th>
+        </tr>
+      </thead>
+      <tbody id="tbody"></tbody>
+    </table>
+    <div class="empty" id="empty" style="display:none;">暂无数据</div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  const params = new URLSearchParams(location.search);
+  const KEY = params.get('key') || '';
+
+  if (!KEY) {
+    window.location.href = '/?error=1';
+  }
+
+  let allData = [];
+
+  function api(url) {
+    return fetch(url + (url.includes('?') ? '&' : '?') + 'key=' + encodeURIComponent(KEY))
+      .then(r => r.json());
+  }
+
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2000);
+  }
+
+  function logout() {
+    window.location.href = '/admin';
+  }
+
+  function scoreClass(s) {
+    if (s >= 70) return 'score-high';
+    if (s >= 40) return 'score-mid';
+    return 'score-low';
+  }
+
+  function renderTable() {
+    const nameFilter = document.getElementById('filter-name').value.toLowerCase();
+    const typeFilter = document.getElementById('filter-type').value;
+    const industryFilter = document.getElementById('filter-industry').value;
+
+    const filtered = allData.filter(row => {
+      if (nameFilter && !row.user_name.toLowerCase().includes(nameFilter) && !row.brand_name.toLowerCase().includes(nameFilter)) return false;
+      if (typeFilter && row.base_type !== typeFilter) return false;
+      if (industryFilter && row.industry !== industryFilter) return false;
+      return true;
+    });
+
+    const tbody = document.getElementById('tbody');
+    const empty = document.getElementById('empty');
+
+    if (filtered.length === 0) {
+      tbody.innerHTML = '';
+      empty.style.display = 'block';
+      return;
+    }
+    empty.style.display = 'none';
+
+    tbody.innerHTML = filtered.map(row => `
+      <tr>
+        <td>${row.id}</td>
+        <td class="time">${row.created_at}</td>
+        <td>${esc(row.user_name)}</td>
+        <td>${esc(row.industry)}</td>
+        <td>${esc(row.brand_name)}</td>
+        <td><span class="type-badge type-${esc(row.base_type)}">${esc(row.base_type)}</span></td>
+        <td class="score ${scoreClass(row.brand_score)}">${row.brand_score}</td>
+        <td class="score ${scoreClass(row.channel_score)}">${row.channel_score}</td>
+        <td class="score ${scoreClass(row.data_score)}">${row.data_score}</td>
+        <td class="actions">
+          <button onclick="viewDetail(${row.id})">详情</button>
+          <button onclick="deleteRow(${row.id})" style="color:var(--red)">删除</button>
+        </td>
+      </tr>
+    `).join('');
+  }
+
+  function esc(s) {
+    const d = document.createElement('div');
+    d.textContent = s || '';
+    return d.innerHTML;
+  }
+
+  function viewDetail(id) {
+    const row = allData.find(r => r.id === id);
+    if (!row) return;
+    const answers = JSON.parse(row.answers || '{}');
+    let msg = `ID: ${row.id}\n姓名: ${row.user_name}\n行业: ${row.industry}\n品牌: ${row.brand_name}\n类型: ${row.base_type}/${row.sub_type}\n卦象: ${row.hexagram}\n\n分数: 品牌${row.brand_score} 渠道${row.channel_score} 数据${row.data_score}\n\n答案:\n`;
+    for (const [k,v] of Object.entries(answers)) {
+      msg += `  Q${k}: ${v}\n`;
+    }
+    alert(msg);
+  }
+
+  function deleteRow(id) {
+    if (!confirm('确认删除 ID=' + id + ' 的记录？')) return;
+    fetch('/api/submissions/' + id + '?key=' + encodeURIComponent(KEY), { method: 'DELETE' })
+      .then(r => r.json())
+      .then(() => {
+        showToast('已删除 ID=' + id);
+        loadData();
+      })
+      .catch(() => showToast('删除失败'));
+  }
+
+  function exportCSV() {
+    if (allData.length === 0) return showToast('暂无数据可导出');
+    const BOM = '\uFEFF';
+    const header = 'ID,时间,姓名,行业,品牌,类型,子类型,卦象,品牌力,渠道力,数据力\n';
+    const rows = allData.map(r => [
+      r.id, r.created_at, r.user_name, r.industry, r.brand_name,
+      r.base_type, r.sub_type, r.hexagram,
+      r.brand_score, r.channel_score, r.data_score
+    ].map(v => '"' + String(v).replace(/"/g, '""') + '"').join(','));
+    const blob = new Blob([BOM + header + rows.join('\n')], { type: 'text/csv;charset=utf-8' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = '三力诊断_' + new Date().toISOString().slice(0,10) + '.csv';
+    a.click();
+    showToast('CSV 已导出');
+  }
+
+  function loadData() {
+    api('/api/submissions').then(data => {
+      allData = data;
+      renderTable();
+
+      // Populate industry filter
+      const industries = [...new Set(data.map(r => r.industry))].sort();
+      const sel = document.getElementById('filter-industry');
+      const current = sel.value;
+      sel.innerHTML = '<option value="">全部行业</option>' + industries.map(i => `<option value="${esc(i)}">${esc(i)}</option>`).join('');
+      sel.value = current;
+
+      // Stats
+      document.getElementById('stat-total').textContent = data.length;
+      if (data.length > 0) {
+        const avg = (key) => (data.reduce((s,r) => s + r[key], 0) / data.length).toFixed(1);
+        document.getElementById('stat-brand').textContent = avg('brand_score');
+        document.getElementById('stat-channel').textContent = avg('channel_score');
+        document.getElementById('stat-data').textContent = avg('data_score');
+      }
+    }).catch(() => {
+      document.body.innerHTML = '<div style="color:#C23A2B;padding:40px;text-align:center;">认证失败，请<a href="/admin" style="color:#C4A265;">重新登录</a></div>';
+    });
+  }
+
+  loadData();
+</script>
+</body>
+</html>

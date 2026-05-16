@@ -6,6 +6,68 @@ const cors = require('cors');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// ===== Admin Auth =====
+const ADMIN_KEY = process.env.ADMIN_KEY || 'sanli2026';
+function requireAuth(req, res, next) {
+  const key = req.query.key || (req.headers['authorization'] || '').replace('Bearer ', '');
+  if (key !== ADMIN_KEY) {
+    // Use originalUrl so it works correctly when middleware is mounted with a path prefix
+    const urlPath = req.originalUrl || req.url || req.path;
+    if (urlPath.startsWith('/api/')) {
+      return res.status(401).json({ error: '未授权' });
+    }
+    // If it's the admin page, render a password prompt
+    return res.send(`
+      <!DOCTYPE html>
+      <html lang="zh-CN">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>三力诊断 · 管理后台</title>
+        <style>
+          * { margin:0; padding:0; box-sizing:border-box; }
+          body { font-family: -apple-system,'PingFang SC','Microsoft YaHei',sans-serif; background:#08090c; color:#e4e2df; min-height:100vh; display:flex; align-items:center; justify-content:center; }
+          .box { background:#15171e; border:1px solid #23262f; border-radius:12px; padding:40px 32px; width:100%; max-width:360px; }
+          h2 { text-align:center; margin-bottom:8px; font-size:20px; }
+          p { text-align:center; color:#a0a0b2; font-size:13px; margin-bottom:24px; }
+          input { width:100%; padding:10px 14px; border-radius:8px; border:1px solid #23262f; background:#0e1015; color:#e4e2df; font-size:15px; outline:none; margin-bottom:16px; }
+          input:focus { border-color:#C4A265; }
+          button { width:100%; padding:10px; border-radius:8px; border:none; background:#C4A265; color:#08090c; font-size:15px; font-weight:600; cursor:pointer; }
+          button:hover { opacity:0.9; }
+          .err { color:#C23A2B; font-size:13px; text-align:center; margin-bottom:12px; display:none; }
+        </style>
+      </head>
+      <body>
+        <div class="box">
+          <h2>🔒 管理后台</h2>
+          <p>三力智策 · 品牌三力诊断</p>
+          <div class="err" id="err">密码错误，请重试</div>
+          <input type="password" id="key" placeholder="请输入访问密码" autofocus />
+          <button onclick="login()">进入后台</button>
+        </div>
+        <script>
+          function login() {
+            const key = document.getElementById('key').value;
+            if (!key) return;
+            window.location.href = '/admin?key=' + encodeURIComponent(key);
+          }
+          document.getElementById('key').addEventListener('keydown', e => { if(e.key==='Enter') login(); });
+          // Show error if redirected with ?error=1
+          if (new URLSearchParams(location.search).get('error') === '1') {
+            document.getElementById('err').style.display = 'block';
+          }
+        </script>
+      </body>
+      </html>
+    `);
+  }
+  next();
+}
+// Only protect admin routes, NOT the public submit API or static files
+app.use('/admin', requireAuth);
+app.use('/api/submissions', requireAuth);
+app.use('/api/stats', requireAuth);
+
 // Middleware
 const allowedOrigins = [
   'https://sanli-quiz.github.io',
@@ -100,9 +162,21 @@ app.get('/api/stats', (req, req2) => {
   }
 });
 
+// API: Delete submission
+app.delete('/api/submissions/:id', (req, res) => {
+  try {
+    const result = db.prepare('DELETE FROM submissions WHERE id = ?').run(req.params.id);
+    if (result.changes === 0) return res.status(404).json({ error: '记录不存在' });
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Delete error:', err);
+    res.status(500).json({ error: '删除失败' });
+  }
+});
+
 // Admin page
 app.get('/admin', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'admin.html'));
+  res.sendFile(path.join(__dirname, 'views', 'admin.html'));
 });
 
 app.listen(PORT, () => {
