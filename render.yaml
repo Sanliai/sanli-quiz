@@ -9,4 +9,6 @@ services:
         value: production
       - key: PORT
         value: 10000
+      - key: ADMIN_KEY
+        value: sanli2026
     plan: free
